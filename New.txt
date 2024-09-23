@@ -1,0 +1,175 @@
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Scanner;
+
+class GroceryItem {
+    private String name;
+    private double pricePerUnit;
+    private int quantityInStock;
+    private LocalDateTime stockUpdateDateTime;
+
+    public GroceryItem(String name, double pricePerUnit, int quantityInStock) {
+        this.name = name;
+        this.pricePerUnit = pricePerUnit;
+        this.quantityInStock = quantityInStock;
+        this.stockUpdateDateTime = LocalDateTime.now();
+    }
+
+    // Getters and setters
+    public String getName() {
+        return name;
+    }
+
+    public double getPricePerUnit() {
+        return pricePerUnit;
+    }
+
+    public int getQuantityInStock() {
+        return quantityInStock;
+    }
+
+    public LocalDateTime getStockUpdateDateTime() {
+        return stockUpdateDateTime;
+    }
+
+    // Update quantity and stock update date and time
+    public void updateQuantity(int quantity) {
+        this.quantityInStock = quantity;
+        this.stockUpdateDateTime = LocalDateTime.now();
+    }
+
+    @Override
+    public String toString() {
+        return String.format("Name: %s, Price: %.2f, Quantity: %d, Last Updated: %s", 
+                              name, pricePerUnit, quantityInStock, stockUpdateDateTime.toString());
+    }
+}
+
+class GroceryManager {
+    private List<GroceryItem> groceryItems;
+
+    public GroceryManager() {
+        this.groceryItems = new ArrayList<>();
+    }
+
+    // 1. Add a new grocery item
+    public void addGroceryItem(String name, double pricePerUnit, int quantityInStock) {
+        GroceryItem newItem = new GroceryItem(name, pricePerUnit, quantityInStock);
+        groceryItems.add(newItem);
+        System.out.println("Added item: " + newItem);
+    }
+
+    // 2. Update the quantity of a grocery item
+    public void updateGroceryItemQuantity(String name, int newQuantity) {
+        for (GroceryItem item : groceryItems) {
+            if (item.getName().equalsIgnoreCase(name)) {
+                item.updateQuantity(newQuantity);
+                System.out.println("Updated item: " + item);
+                return;
+            }
+        }
+        System.out.println("Item not found: " + name);
+    }
+
+    // 3. Display the list of grocery items
+    public void displayGroceryItems() {
+        if (groceryItems.isEmpty()) {
+            System.out.println("No items in the grocery list.");
+        } else {
+            System.out.println("Grocery Items:");
+            for (GroceryItem item : groceryItems) {
+                System.out.println(item);
+            }
+        }
+    }
+
+    // 4. Remove all empty stock items (quantity = 0)
+    public void removeEmptyStockItems() {
+        Iterator<GroceryItem> iterator = groceryItems.iterator();
+        while (iterator.hasNext()) {
+            GroceryItem item = iterator.next();
+            if (item.getQuantityInStock() == 0) {
+                System.out.println("Removing item: " + item.getName());
+                iterator.remove();
+            }
+        }
+    }
+
+    // 5. Display all products updated in the last 3 days
+    public void displayRecentlyUpdatedItems() {
+        LocalDateTime threeDaysAgo = LocalDateTime.now().minus(3, ChronoUnit.DAYS);
+        boolean found = false;
+        for (GroceryItem item : groceryItems) {
+            if (item.getStockUpdateDateTime().isAfter(threeDaysAgo)) {
+                System.out.println(item);
+                found = true;
+            }
+        }
+        if (!found) {
+            System.out.println("No items updated in the last 3 days.");
+        }
+    }
+}
+
+public class MyGroceryApp {
+    public static void main(String[] args) {
+        GroceryManager manager = new GroceryManager();
+        Scanner scanner = new Scanner(System.in);
+        int option;
+
+        do {
+            System.out.println("\nGrocery Management Menu:");
+            System.out.println("1. Add Grocery Item");
+            System.out.println("2. Update Grocery Item Quantity");
+            System.out.println("3. Display All Grocery Items");
+            System.out.println("4. Remove All Empty Stock Items");
+            System.out.println("5. Display Recently Updated Items (Last 3 Days)");
+            System.out.println("6. Exit");
+            System.out.print("Choose an option: ");
+            option = scanner.nextInt();
+            scanner.nextLine();  // Consume newline
+
+            switch (option) {
+                case 1:
+                    System.out.print("Enter item name: ");
+                    String name = scanner.nextLine();
+                    System.out.print("Enter price per unit: ");
+                    double price = scanner.nextDouble();
+                    System.out.print("Enter quantity in stock: ");
+                    int quantity = scanner.nextInt();
+                    manager.addGroceryItem(name, price, quantity);
+                    break;
+                case 2:
+                    System.out.print("Enter the item name to update quantity: ");
+                    String itemName = scanner.nextLine();
+                    System.out.print("Enter new quantity: ");
+                    int newQuantity = scanner.nextInt();
+                    manager.updateGroceryItemQuantity(itemName, newQuantity);
+                    break;
+                case 3:
+                    manager.displayGroceryItems();
+                    break;
+                case 4:
+                    manager.removeEmptyStockItems();
+                    break;
+                case 5:
+                    manager.displayRecentlyUpdatedItems();
+                    break;
+                case 6:
+                    System.out.println("Exiting the application.");
+                    break;
+                default:
+                    System.out.println("Invalid option. Please try again.");
+            }
+        } while (option != 6);
+
+        scanner.close();
+    }
+}
+
+
+
+
