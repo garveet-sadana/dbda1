@@ -1,0 +1,159 @@
+# Import required libraries
+from pyspark import SparkConf, SparkContext
+from pyspark.streaming import StreamingContext
+from pyspark.streaming.kafka import KafkaUtils
+from kafka import KafkaProducer
+import threading
+import time
+
+# Kafka Producer function to send messages
+def kafka_producer():
+    producer = KafkaProducer(bootstrap_servers='localhost:9092')  # Kafka broker address
+    while True:
+        # Send sample message to Kafka topic every second
+        producer.send('test-topic', b'Hello Spark Streaming')  # Sending message to 'test-topic'
+        time.sleep(1)  # Delay of 1 second between each message
+
+# Create a thread for Kafka Producer
+producer_thread = threading.Thread(target=kafka_producer)
+producer_thread.start()
+
+# Spark Streaming Context setup
+conf = SparkConf().setAppName("KafkaSparkStream").setMaster("local[*]")
+sc = SparkContext(conf=conf)
+ssc = StreamingContext(sc, 10)  # Batch interval of 10 seconds
+
+# Kafka parameters
+kafka_broker = "localhost:9092"
+topic = "test-topic"
+
+# Create a direct Kafka stream
+kafka_stream = KafkaUtils.createDirectStream(ssc, [topic], {"bootstrap.servers": kafka_broker})
+
+# Process the stream - extract the message value (x[1]) and split into words
+lines = kafka_stream.map(lambda x: x[1])  # x[1] is the message value in Kafka
+words = lines.flatMap(lambda line: line.split())  # Split the message into words
+
+# Count the words in the stream
+word_counts = words.map(lambda word: (word, 1)).reduceByKey(lambda a, b: a + b)
+
+# Output the word counts to the console
+word_counts.pprint()
+
+# Start the Spark streaming computation
+ssc.start()
+
+# Wait for the streaming to terminate
+ssc.awaitTermination()
+
+Here’s the entire PySpark Kafka streaming code in one terminal for both the **Kafka producer** and **Spark Streaming consumer**:
+
+### **Kafka Producer + Spark Streaming Consumer (in one script)**
+
+```python
+# Import required libraries
+from pyspark import SparkConf, SparkContext
+from pyspark.streaming import StreamingContext
+from pyspark.streaming.kafka import KafkaUtils
+from kafka import KafkaProducer
+import threading
+import time
+
+# Kafka Producer function to send messages
+def kafka_producer():
+    producer = KafkaProducer(bootstrap_servers='localhost:9092')  # Kafka broker address
+    while True:
+        # Send sample message to Kafka topic every second
+        producer.send('test-topic', b'Hello Spark Streaming')  # Sending message to 'test-topic'
+        time.sleep(1)  # Delay of 1 second between each message
+
+# Create a thread for Kafka Producer
+producer_thread = threading.Thread(target=kafka_producer)
+producer_thread.start()
+
+# Spark Streaming Context setup
+conf = SparkConf().setAppName("KafkaSparkStream").setMaster("local[*]")
+sc = SparkContext(conf=conf)
+ssc = StreamingContext(sc, 10)  # Batch interval of 10 seconds
+
+# Kafka parameters
+kafka_broker = "localhost:9092"
+topic = "test-topic"
+
+# Create a direct Kafka stream
+kafka_stream = KafkaUtils.createDirectStream(ssc, [topic], {"bootstrap.servers": kafka_broker})
+
+# Process the stream - extract the message value (x[1]) and split into words
+lines = kafka_stream.map(lambda x: x[1])  # x[1] is the message value in Kafka
+words = lines.flatMap(lambda line: line.split())  # Split the message into words
+
+# Count the words in the stream
+word_counts = words.map(lambda word: (word, 1)).reduceByKey(lambda a, b: a + b)
+
+# Output the word counts to the console
+word_counts.pprint()
+
+# Start the Spark streaming computation
+ssc.start()
+
+# Wait for the streaming to terminate
+ssc.awaitTermination()
+```
+
+### **Explanation**
+
+1. **Kafka Producer**:
+   - The `kafka_producer()` function creates a Kafka producer that sends a sample message (`"Hello Spark Streaming"`) to Kafka's `test-topic` every second.
+   - This runs in a separate thread to simulate real-time message generation.
+
+2. **Spark Streaming Consumer**:
+   - A Spark Streaming context is set up to listen to the Kafka topic (`test-topic`).
+   - Each message received from Kafka is split into words using `flatMap`, and word counts are computed using `reduceByKey`.
+
+3. **Threading**:
+   - The Kafka producer is run in a separate thread using Python's `threading` module to ensure that the Spark consumer can start processing the data immediately.
+
+4. **Word Count Output**:
+   - The word counts are printed to the console every 10 seconds, based on the messages received from Kafka.
+
+---
+
+### **How to Run**
+
+1. **Start Kafka**:
+   - Ensure you have a running Kafka instance (using localhost and port `9092` in this example).
+   - Create a Kafka topic:
+     ```bash
+     kafka-topics.sh --create --topic test-topic --bootstrap-server localhost:9092 --partitions 1 --replication-factor 1
+     ```
+
+2. **Run the PySpark Script**:
+   Save the code above in a Python file, e.g., `kafka_spark_streaming.py`. Then, run it using the `spark-submit` command:
+   ```bash
+   spark-submit kafka_spark_streaming.py
+   ```
+
+3. **Verify**:
+   - As the script runs, you should see the Kafka producer sending messages, and the Spark job will process them to print the word counts every 10 seconds.
+
+---
+
+### **Expected Output**
+Example of the output printed by Spark Streaming after processing messages from Kafka:
+
+```
+---------------------------
+Time: 2024-12-02 00:00:00
+---------------------------
+('Hello', 1)
+('Spark', 1)
+('Streaming', 1)
+---------------------------
+Time: 2024-12-02 00:00:10
+---------------------------
+('Hello', 2)
+('Spark', 2)
+('Streaming', 2)
+```
+
+This code combines both the Kafka producer (sending messages) and Spark Streaming consumer (processing and counting words). Let me know if you need further adjustments or clarifications!
