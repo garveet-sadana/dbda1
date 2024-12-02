@@ -1,0 +1,43 @@
+import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.admin.*;
+
+public class HBaseExample {
+    public static void main(String[] args) throws Exception {
+        // Set up the configuration
+        org.apache.hadoop.conf.Configuration config = HBaseConfiguration.create();
+        try (Connection connection = ConnectionFactory.createConnection(config)) {
+            Admin admin = connection.getAdmin();
+
+            // 1. Create Table
+            TableName tableName = TableName.valueOf("students");
+            if (!admin.tableExists(tableName)) {
+                TableDescriptor tableDescriptor = TableDescriptorBuilder.newBuilder(tableName)
+                        .setColumnFamily(ColumnFamilyDescriptorBuilder.of("info"))
+                        .build();
+                admin.createTable(tableDescriptor);
+                System.out.println("Table created!");
+            }
+
+            // 2. Insert Data
+            Table table = connection.getTable(tableName);
+            Put put = new Put(Bytes.toBytes("1")); // Row key
+            put.addColumn(Bytes.toBytes("info"), Bytes.toBytes("name"), Bytes.toBytes("John Doe"));
+            put.addColumn(Bytes.toBytes("info"), Bytes.toBytes("age"), Bytes.toBytes("25"));
+            table.put(put);
+            System.out.println("Data inserted!");
+
+            // 3. Retrieve Data
+            Get get = new Get(Bytes.toBytes("1")); // Row key
+            Result result = table.get(get);
+            String name = Bytes.toString(result.getValue(Bytes.toBytes("info"), Bytes.toBytes("name")));
+            String age = Bytes.toString(result.getValue(Bytes.toBytes("info"), Bytes.toBytes("age")));
+            System.out.println("Retrieved Data: Name = " + name + ", Age = " + age);
+
+            // Clean up
+            table.close();
+        }
+    }
+}
